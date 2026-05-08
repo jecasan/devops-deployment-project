@@ -19,3 +19,9 @@ variable "instance_type" {
     type        = string
     default     = "t3.micro"
 }
+
+variable "app_version" {
+    description = "Application version tag"
+    type        = string
+    default     = "latest"
+}

@@ -28,23 +28,25 @@ resource "aws_security_group" "jenkins_sg" {
     description = "Security group for Jenkins server"
 
     ingress {
-        from_port  = 22
-        to_port    = 22
-        protocol   = "tcp"
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
         cidr_blocks = [var.your_ip]
+        description = "SSH from developer machine"
     }
 
     ingress {
-        from_port  = 8080
-        to_port    = 8080
-        protocol   = "tcp"
+        from_port   = 8080
+        to_port     = 8080
+        protocol    = "tcp"
         cidr_blocks = [var.your_ip]
+        description = "Jenkins UI access"
     }
 
     egress {
-        from_port  = 0
-        to_port    = 0
-        protocol   = "-1"
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
     }
 
@@ -60,17 +62,27 @@ resource "aws_security_group" "app_sg" {
     description = "Security group for application server"
 
     ingress {
-        from_port  = 22
-        to_port    = 22
-        protocol   = "tcp"
+        from_port   = 22
+        to_port     = 22
+        protocol    = "tcp"
         cidr_blocks = [var.your_ip]
+        description = "SSH from developer machine"
     }
 
     ingress {
-        from_port  = 80
-        to_port    = 80
-        protocol   = "tcp"
+        from_port   = 80
+        to_port     = 80
+        protocol    = "tcp"
         cidr_blocks = [var.your_ip]
+        description = "Public HTTP access"
+    }
+
+    ingress {
+        from_port       = 5000
+        to_port         = 5000
+        protocol        = "tcp"
+        security_groups = [aws_security_group.jenkins_sg.id]
+        description     = "App port from Jenkins"
     }
 
     egress {
@@ -100,6 +112,7 @@ resource "aws_instance" "jenkins" {
 
     tags = {
         Name    = "jenkins-server"
+        Role    = "CI/CD"
         Project = "devops-portfolio"
     }
 }
@@ -118,6 +131,7 @@ resource "aws_instance" "app_server" {
 
     tags = {
         Name    = "app-server"
+        Role    = "Application"
         Project = "devops-portfolio"
     }
 }
