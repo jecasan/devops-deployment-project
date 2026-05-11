@@ -1,30 +1,73 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_CREDS = credentials('dockerhub-credentials')
+        IMAGE_NAME = "jecasan/devops-app"
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                echo "Checked out commit: ${env.GIT_COMMIT}"
-                echo "Branch: ${env.GIT_BRANCH}"
-                sh 'ls -la'
+                checkout scm
+                echo "Building version: ${env.IMAGE_TAG}"
+                echo "Commit: ${env.GIT_COMMIT}"
             }
         }
 
-        stage('Verify Tools') {
+        stage('Run Tests') {
             steps{
-                sh 'docker --version'
-                sh 'python3 --version'
-                sh 'git --version'
+                echo 'Running tests...'
+                dir('app') {
+                    sh '''
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install -r requirements.txt
+                        pytest tests/ -v
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker image ${env.IMAGE_NAME}:${env.IMAGE_TAG}"
+                sh "docker build -t ${env.IMAGE_NAME}:${env.IMAGE_TAG} app/"
+                sh "docker tag ${env.IMAGE_NAME}:${env.IMAGE_TAG} ${env.IMAGE_NAME}:latest"
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                echo 'Pushing Docker image to Docker Hub...'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
+                    sh "docker push ${env.IMAGE_NAME}:${env.IMAGE_TAG}"
+                    sh "docker push ${env.IMAGE_NAME}:latest"
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                echo 'Removing local image to free disk space...'
+                sh "docker rmi ${env.IMAGE_NAME}:${env.IMAGE_TAG} || true"
+                sh "docker rmi ${env.IMAGE_NAME}:latest || true"
             }
         }
     }
 
     post {
         success {
-            echo "Build ${env.BUILD_NUMBER} succeeded"
+            echo "Image ${env.IMAGE_NAME}:${env.IMAGE_TAG} built and pushed successfully"
         }
         failure {
-            echo "Build ${env.BUILD_NUMBER} failed"
+            echo "Pipeline failed at build ${env.BUILD_NUMBER}"
+        }
+        always {
+            echo "Cleaning up workspace..."
+            cleanWs()
         }
     }
 }
