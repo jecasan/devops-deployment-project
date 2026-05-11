@@ -1,0 +1,30 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Checked out commit: ${env.GIT_COMMIT}"
+                echo "Branch: ${env.GIT_BRANCH}"
+                sh 'ls -la'
+            }
+        }
+
+        stage('Verify Tools') {
+            steps{
+                sh 'docker --version'
+                sh 'python3 --version'
+                sh 'git --version'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Build ${env.BUILD_NUMBER} succeeded"
+        }
+        success {
+            echo "Build ${env.BUILD_NUMBER} failed"
+        }
+    }
+}
