@@ -23,7 +23,7 @@ pipeline {
         success {
             echo "Build ${env.BUILD_NUMBER} succeeded"
         }
-        success {
+        failure {
             echo "Build ${env.BUILD_NUMBER} failed"
         }
     }
