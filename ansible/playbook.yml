@@ -81,17 +81,17 @@
         state: present 
         update_cache: yes
 
-    - name: Start and enable Jenkins service
-      systemd:
-        name: jenkins
-        state: started
-        enabled: yes
-
     - name: Add Jenkins user to Docker group
       user:
         name: jenkins
         groups: docker
         append: yes
+
+    - name: Start and enable Jenkins service
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes
 
     - name: Get Jenkins initial admin password
       command: cat /var/lib/jenkins/secrets/initialAdminPassword
@@ -159,17 +159,17 @@
           - containerd.io
         state: present
 
-    - name: Start and enable Docker service on application servers
-      systemd:
-        name: docker
-        state: started
-        enabled: yes
-
     - name: Add ubuntu user to Docker group on application servers
       user:
         name: ubuntu
         groups: docker
         append: yes
+
+    - name: Start and enable Docker service on application servers
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
 
     - name: Install monitoring tools on application servers
       apt:

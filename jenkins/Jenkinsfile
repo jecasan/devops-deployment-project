@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_CREDS = credentials('docker-token')
-        IMAGE_NAME = "jecasan/devops-app"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        DOCKER_CREDS  = credentials('docker-token')
+        APP_SERVER_IP = credentials('app-server-ip')
+        IMAGE_NAME    = "jecasan/devops-app"
+        IMAGE_TAG     = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -13,19 +14,25 @@ pipeline {
                 checkout scm
                 echo "Building version: ${env.IMAGE_TAG}"
                 echo "Commit: ${env.GIT_COMMIT}"
+                sh 'ls -la'
             }
         }
 
         stage('Run Tests') {
             steps{
-                echo 'Running tests...'
+                echo 'Running automated tests...'
                 dir('app') {
                     sh '''
                         python3 -m venv venv
                         . venv/bin/activate
-                        pip install -r requirements.txt
-                        pytest tests/ -v
+                        pip install -r requirements.txt -q
+                        pytest tests/ -v --tb=short
                     '''
+                }
+            }
+            post {
+                failure {
+                    echo ' Tests failed! Deployment cancelled.'
                 }
             }
         }
@@ -48,6 +55,47 @@ pipeline {
             }
         }
 
+        stage('Deploy to Application Server') {
+            steps {
+                echo "Deploying version ${env.IMAGE_TAG} to ${env.APP_SERVER_IP}..."
+                sshagent(['app-server-ssh-key']) {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
+                            echo "Pulling image ${IMAGE_NAME}:${IMAGE_TAG}..."
+                            docker pull ${IMAGE_NAME}:${IMAGE_TAG}
+
+                            echo "Stopping and removing old container if it exists..."
+                            docker stop devops-app 2>/dev/null || true
+                            docker rm devops-app 2>/dev/null || true
+
+                            echo "Starting new container..."
+                            docker run -d \
+                                --name devops-app \
+                                --restart unless-stopped \
+                                -p 80:5000\
+                                -e APP_VERSION=${IMAGE_TAG} \
+                                -e ENV=production \
+                                ${IMAGE_NAME}:${IMAGE_TAG}
+
+                            echo "Container started. Waiting for setup..."
+                            sleep 5
+                            docker ps | grep devops-app
+                            '
+                    """
+                }
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                echo 'Waiting for app to be ready...'
+                sh 'sleep 10'
+                echo "Checking health at http://${APP_SERVER_IP}/health"
+                sh "curl -f http://${APP_SERVER_IP}/health"
+                echo 'Application is healthy!'
+            }
+        }
+
         stage('Cleanup') {
             steps {
                 echo 'Removing local image to free disk space...'
@@ -59,13 +107,26 @@ pipeline {
 
     post {
         success {
-            echo "Image ${env.IMAGE_NAME}:${env.IMAGE_TAG} built and pushed successfully"
+            echo """
+            ================================================
+            DEPLOYMENT SUCCESSFUL
+            Version:  ${IMAGE_TAG}
+            App URL:  http://${APP_SERVER_IP}
+            Commit:   ${GIT_COMMIT}
+            ================================================
+            """
         }
         failure {
-            echo "Pipeline failed at build ${env.BUILD_NUMBER}"
+            echo """
+            ================================================
+            DEPLOYMENT FAILED
+            Build:  ${BUILD_NUMBER}
+            Check the console output above for the error
+            ================================================
+            """
         }
         always {
-            echo "Cleaning up workspace..."
+            cleanWs()
         }
     }
 }
