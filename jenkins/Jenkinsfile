@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_CREDS = credentials('dockerhub-credentials')
+        DOCKER_CREDS = credentials('docker-token')
         IMAGE_NAME = "jecasan/devops-app"
         IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
@@ -40,12 +40,11 @@ pipeline {
 
         stage('Push to Docker Hub') {
             steps {
-                echo 'Pushing Docker image to Docker Hub...'
-                withCredentials([usernamePassword(credentialsId: 'docker-token', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                    sh "echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin"
-                    sh "docker push ${env.IMAGE_NAME}:${env.IMAGE_TAG}"
-                    sh "docker push ${env.IMAGE_NAME}:latest"
-                }
+                sh '''
+                    echo $DOCKER_CREDS_PSW | docker login -u $DOCKER_CREDS_USR --password-stdin
+                    docker push ${IMAGE_NAME}:${IMAGE_TAG}
+                    docker push ${IMAGE_NAME}:latest
+                '''
             }
         }
 
