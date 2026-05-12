@@ -58,31 +58,51 @@ pipeline {
         stage('Deploy to Application Server') {
             steps {
                 echo "Deploying version ${env.IMAGE_TAG} to app server..."
-                sshagent(['app-server-ssh-key']) {
+                // sshagent(['app-server-ssh-key']) {
+                //     sh """
+                //         ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
+                //             echo "Pulling image ${IMAGE_NAME}:${IMAGE_TAG}..."
+                //             docker pull ${IMAGE_NAME}:${IMAGE_TAG}
+
+                //             echo "Stopping and removing old container if it exists..."
+                //             docker stop devops-app 2>/dev/null || true
+                //             docker rm devops-app 2>/dev/null || true
+
+                //             echo "Starting new container..."
+                //             docker run -d \
+                //                 --name devops-app \
+                //                 --restart unless-stopped \
+                //                 -p 80:5000\
+                //                 -e APP_VERSION=${IMAGE_TAG} \
+                //                 -e ENV=production \
+                //                 ${IMAGE_NAME}:${IMAGE_TAG}
+
+                //             echo "Container started. Waiting for setup..."
+                //             sleep 5
+                //             docker ps | grep devops-app
+                //             '
+                //     """
+                // }
+                sshagent(credentials: ['app-server-ssh-key']) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
-                            echo "Pulling image ${IMAGE_NAME}:${IMAGE_TAG}..."
+                        ssh -vvv -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} << EOF
                             docker pull ${IMAGE_NAME}:${IMAGE_TAG}
 
-                            echo "Stopping and removing old container if it exists..."
-                            docker stop devops-app 2>/dev/null || true
-                            docker rm devops-app 2>/dev/null || true
+                            docker stop devops-app || true
+                            docker rm devops-app || true
 
-                            echo "Starting new container..."
-                            docker run -d \
-                                --name devops-app \
-                                --restart unless-stopped \
-                                -p 80:5000\
-                                -e APP_VERSION=${IMAGE_TAG} \
-                                -e ENV=production \
+                            docker run -d \\
+                                --name devops-app \\
+                                --restart unless-stopped \\
+                                -p 80:5000 \\
+                                -e APP_VERSION=${IMAGE_TAG} \\
+                                -e ENV=production \\
                                 ${IMAGE_NAME}:${IMAGE_TAG}
 
-                            echo "Container started. Waiting for setup..."
-                            sleep 5
-                            docker ps | grep devops-app
-                            '
-                    """
-                }
+                            docker ps
+                        EOF
+            """
+        }
             }
         }
 
