@@ -6,7 +6,7 @@ CURRENT_IP=$(curl -s ifconfig.me)
 echo "Your IP: $CURRENT_IP"
 
 echo "Updating terraform.tfvars..."
-sed -i "s|your_ip.*=.*|your_ip = \"$CURRENT_IP/\" |" terraform?terraform.tfvars
+sed -i "s|your_ip.*=.*|your_ip = \"$CURRENT_IP/32\" |" terraform/terraform.tfvars
 
 echo "Applying security group update..."
 cd terraform/
