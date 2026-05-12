@@ -80,14 +80,14 @@ resource "aws_security_group" "app_sg" {
         to_port     = 22
         protocol    = "tcp"
         security_groups = [aws_security_group.jenkins_sg.id]
-        description = "App port from Jenkins"
+        description = "ssh from jenkins"
     }
 
     ingress {
         from_port   = 80
         to_port     = 80
         protocol    = "tcp"
-        cidr_blocks = [var.your_ip]
+        cidr_blocks = ["0.0.0.0/0"]
         description = "Public HTTP access"
     }
 
