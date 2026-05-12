@@ -57,7 +57,7 @@ pipeline {
 
         stage('Deploy to Application Server') {
             steps {
-                echo "Deploying version ${env.IMAGE_TAG} to ${env.APP_SERVER_IP}..."
+                echo "Deploying version ${env.IMAGE_TAG} to app server..."
                 sshagent(['app-server-ssh-key']) {
                     sh """
                         ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER_IP} '
@@ -90,7 +90,6 @@ pipeline {
             steps {
                 echo 'Waiting for app to be ready...'
                 sh 'sleep 10'
-                echo "Checking health at http://${APP_SERVER_IP}/health"
                 sh "curl -f http://${APP_SERVER_IP}/health"
                 echo 'Application is healthy!'
             }
