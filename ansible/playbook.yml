@@ -19,6 +19,8 @@
           - lsb-release
           - git
           - openjdk-21-jdk
+          - python3-venv
+          - python3-pip
         state: present
 
     - name: Create keyrings directory
