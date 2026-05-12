@@ -136,7 +136,7 @@ resource "aws_instance" "app_server" {
     ami                    = data.aws_ami.ubuntu.id
     instance_type          = var.instance_type
     key_name               = var.key_pair_name
-    vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+    vpc_security_group_ids = [aws_security_group.app_sg.id]
 
     root_block_device {
         volume_size  = 20
