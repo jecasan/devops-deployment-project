@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_CREDS  = credentials('docker-hub-credentials')
-        APP_SERVER_IP = credentials('app-server-ip')
+        // APP_SERVER_IP = credentials('app-server-ip')
         IMAGE_NAME    = "jecasan/devops-app"
         IMAGE_TAG     = "${env.BUILD_NUMBER}"
     }
