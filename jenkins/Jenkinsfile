@@ -108,7 +108,7 @@ pipeline {
             steps {
                 echo 'Waiting for app to be ready...'
                 sh 'sleep 16'
-                sh """
+                sh '''
                     APP_PUBLIC_IP=$(aws ec2 describe-instances \
                         --filters "Name=tag:Name,Values=app-server" \
                         --query "Reservations[0].Instances[0].PublicIpAddress" \
@@ -118,7 +118,7 @@ pipeline {
                     echo "Checking app health at http://$APP_PUBLIC_IP/health"
                     curl -f http://$APP_PUBLIC_IP/health
                     echo "Health check passed! App is running and healthy."
-                """
+                '''
             }
         }
 
