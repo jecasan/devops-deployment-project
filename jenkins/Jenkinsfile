@@ -137,7 +137,6 @@ pipeline {
             ================================================
             DEPLOYMENT SUCCESSFUL
             Version:  ${IMAGE_TAG}
-            App URL:  http://${APP_SERVER_IP}
             Commit:   ${GIT_COMMIT}
             ================================================
             """
