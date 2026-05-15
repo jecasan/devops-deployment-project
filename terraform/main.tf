@@ -36,13 +36,40 @@ resource "aws_iam_role" "ec2_ssm_role" {
     })
 }
 
-# -- Attach SSM policy to the role --
+# -- SSM Core Policy --
 resource "aws_iam_role_policy_attachment" "ssm_policy" {
     role       = aws_iam_role.ec2_ssm_role.name
     policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# -- Instance profile to attach role to EC2 --
+# -- Custom Jenkins Deploy Policy -- 
+resource "aws_iam_policy" "jenkins_deploy_policy" {
+    name        = "jenkins-deploy-policy"
+    description = "Minimal permissions for Jenkins to deploy via SSM"
+    policy = jsonencode({
+        Version = "2012-10-17"
+        Statement = [
+            {
+                Effect = "Allow"
+                Action = [
+                    "ec2:DescribeInstances",
+                    "ssm:SendCommand",
+                    "ssm:GetCommandInvocation",
+                    "ssm:DescribeInstanceInformation",
+                    "ssm:WaitForCommandExecuted"
+                ]
+                Resource = "*"
+            }
+        ]
+    })
+}
+
+resource "aws_iam_role_policy_attachment" "jenkins_deploy_attachment" {
+    role       = aws_iam_role.ec2_ssm_role.name
+    policy_arn = aws_iam_policy.jenkins_deploy_policy.arn
+}
+
+# -- Instance Profile to attach role to EC2 --
 resource "aws_iam_instance_profile" "ec2_profile" {
     name = "ec2-ssm-profile"
     role = aws_iam_role.ec2_ssm_role.name
